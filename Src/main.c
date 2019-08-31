@@ -73,7 +73,8 @@ static void MX_USART3_UART_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	char message[] = "UART 2 Test\n\r";
+	char message1[] = "UART 3 Test\n\r";
   /* USER CODE END 1 */
   
 
@@ -107,6 +108,11 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+
+	  HAL_UART_Transmit(&huart2, (uint8_t*) message, sizeof(message), HAL_MAX_DELAY);
+	  HAL_UART_Transmit(&huart3, (uint8_t*) message1, sizeof(message1), HAL_MAX_DELAY);
+	  uint32_t current_tick = HAL_GetTick();
+	  while( HAL_GetTick() <= (current_tick + 500) );
 
     /* USER CODE BEGIN 3 */
   }
