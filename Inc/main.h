@@ -57,6 +57,17 @@ void Error_Handler(void);
 
 /* USER CODE END EFP */
 
+/* Bootloader functions prototypes */
+void Bootloader_UART_Read_Data(void);
+
+/* Funtion to Execute User application
+ * Assuming User App is stored at USER_APPLICATION_BASE_ADDRESS
+ * i.e, at  FLASH_SECTOR2_BASE_ADDRESS (0x08008000U)
+ */
+void Bootloader_Jump_To_User_App(void);
+
+/* END BFP */
+
 /* Private defines -----------------------------------------------------------*/
 #define B1_Pin GPIO_PIN_13
 #define B1_GPIO_Port GPIOC
@@ -72,8 +83,18 @@ void Error_Handler(void);
 #define TCK_GPIO_Port GPIOA
 #define SWO_Pin GPIO_PIN_3
 #define SWO_GPIO_Port GPIOB
-/* USER CODE BEGIN Private defines */
 
+/* USER CODE BEGIN Private defines */
+#define FLASH_SECTOR0_BASE_ADDRESS 0x08000000U 	// 16KB
+#define FLASH_SECTOR1_BASE_ADDRESS 0x08004000U	// 16KB
+#define FLASH_SECTOR2_BASE_ADDRESS 0x08008000U	// 16KB
+#define FLASH_SECTOR3_BASE_ADDRESS 0x0800C000U	// 16KB
+#define FLASH_SECTOR4_BASE_ADDRESS 0x08010000U	// 64KB
+#define FLASH_SECTOR5_BASE_ADDRESS 0x08020000U	// 128KB
+#define FLASH_SECTOR6_BASE_ADDRESS 0x08040000U	// 128KB
+#define FLASH_SECTOR7_BASE_ADDRESS 0x08060000U	// 128KB
+
+#define USER_APPLICATION_BASE_ADDRESS FLASH_SECTOR2_BASE_ADDRESS
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
