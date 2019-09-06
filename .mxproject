@@ -1,7 +1,7 @@
 [PreviousGenFiles]
-HeaderPath=/home/simha/Projects/STM32CubeIDE_Workspace/Bootloader-NucleoF446xx/Inc
+HeaderPath=/home/simha/Projects/STM32CubeIDE_Workspace/Sboot/Inc
 HeaderFiles=stm32f4xx_it.h;stm32f4xx_hal_conf.h;main.h;
-SourcePath=/home/simha/Projects/STM32CubeIDE_Workspace/Bootloader-NucleoF446xx/Src
+SourcePath=/home/simha/Projects/STM32CubeIDE_Workspace/Sboot/Src
 SourceFiles=stm32f4xx_it.c;stm32f4xx_hal_msp.c;main.c;
 
 [PreviousLibFiles]
