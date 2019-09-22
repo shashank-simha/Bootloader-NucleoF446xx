@@ -24,21 +24,21 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-Bootloader-NucleoF446xx.elf \
+Sboot.elf \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-Bootloader-NucleoF446xx.list \
+Sboot.list \
 
 
 # All Target
-all: Bootloader-NucleoF446xx.elf secondary-outputs
+all: Sboot.elf secondary-outputs
 
 # Tool invocations
-Bootloader-NucleoF446xx.elf: $(OBJS) $(USER_OBJS) /home/simha/Projects/STM32CubeIDE_Workspace/Bootloader-NucleoF446xx/STM32F446RETX_FLASH.ld
-	arm-none-eabi-gcc -o "Bootloader-NucleoF446xx.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/simha/Projects/STM32CubeIDE_Workspace/Bootloader-NucleoF446xx/STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Bootloader-NucleoF446xx.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Sboot.elf: $(OBJS) $(USER_OBJS) /home/simha/Projects/STM32CubeIDE_Workspace/Sboot/STM32F446RETX_FLASH.ld
+	arm-none-eabi-gcc -o "Sboot.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/simha/Projects/STM32CubeIDE_Workspace/Sboot/STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Sboot.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -47,8 +47,8 @@ default.size.stdout: $(EXECUTABLES)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-Bootloader-NucleoF446xx.list: $(EXECUTABLES)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "Bootloader-NucleoF446xx.list"
+Sboot.list: $(EXECUTABLES)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "Sboot.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 

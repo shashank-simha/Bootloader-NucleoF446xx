@@ -42,7 +42,7 @@
 #define BL_DEBUG_MSG_EN
 
 #define D_UART &huart3
-#define C_UARTC_UART &huart2
+#define C_UART &huart2
 
 /* USER CODE END PD */
 
@@ -74,7 +74,8 @@ static void MX_USART3_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+#define BL_RX_LEN  200
+uint8_t bl_rx_buffer[BL_RX_LEN];
 /* USER CODE END 0 */
 
 /**
@@ -116,7 +117,7 @@ int main(void)
 	/* Check whether the on board button is pressed or not */
 	if (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_RESET)
 	{
-		printmsg("BL_DEBUG_MSG:Button is pressed .... Entering to BL mode\n\r");
+		printmsg("BL_DEBUG_MSG:Button is pressed .... Entering BL mode\n\r");
 		Bootloader_UART_Read_Data();
 	}
 	else
@@ -151,15 +152,12 @@ void printmsg(char *format, ...)
  */
 void SystemClock_Config(void)
 {
-	RCC_OscInitTypeDef RCC_OscInitStruct =
-	{ 0 };
-	RCC_ClkInitTypeDef RCC_ClkInitStruct =
-	{ 0 };
+	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
 
 	/** Configure the main internal regulator output voltage
 	 */
-	__HAL_RCC_PWR_CLK_ENABLE()
-	;
+	__HAL_RCC_PWR_CLK_ENABLE();
 	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
 	/** Initializes the CPU, AHB and APB busses clocks
 	 */
@@ -179,8 +177,7 @@ void SystemClock_Config(void)
 	}
 	/** Initializes the CPU, AHB and APB busses clocks
 	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
 	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
 	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
 	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
@@ -291,18 +288,13 @@ static void MX_USART3_UART_Init(void)
  */
 static void MX_GPIO_Init(void)
 {
-	GPIO_InitTypeDef GPIO_InitStruct =
-	{ 0 };
+	GPIO_InitTypeDef GPIO_InitStruct = { 0 };
 
 	/* GPIO Ports Clock Enable */
-	__HAL_RCC_GPIOC_CLK_ENABLE()
-	;
-	__HAL_RCC_GPIOH_CLK_ENABLE()
-	;
-	__HAL_RCC_GPIOA_CLK_ENABLE()
-	;
-	__HAL_RCC_GPIOB_CLK_ENABLE()
-	;
+	__HAL_RCC_GPIOC_CLK_ENABLE();
+	__HAL_RCC_GPIOH_CLK_ENABLE();
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	__HAL_RCC_GPIOB_CLK_ENABLE();
 
 	/*Configure GPIO pin Output Level */
 	HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
@@ -322,11 +314,70 @@ static void MX_GPIO_Init(void)
 
 }
 
-/* USER CODE BEGIN 4 */
+/* USER CODE BEGIN 4 (Bootloader functions implementation) */
 
 void Bootloader_UART_Read_Data(void)
 {
+	uint16_t rec_len = 0;
 
+	while (1)
+	{
+		memset(bl_rx_buffer, 0, 200);
+		/*
+		 * Read and decode commands coming from host
+		 * Read the first two bytes, which gives the length of the command packet
+		 */
+		HAL_UART_Receive(C_UART, bl_rx_buffer, 2, HAL_MAX_DELAY);
+		rec_len = bl_rx_buffer[0];
+		rec_len = rec_len << 8;
+		rec_len += bl_rx_buffer[1];
+
+		HAL_UART_Receive(C_UART, &bl_rx_buffer[2], rec_len, HAL_MAX_DELAY);
+
+		switch (bl_rx_buffer[2])
+		{
+		case BL_GET_VER:
+			Bootloader_Handle_GetVer_cmd(bl_rx_buffer);
+			break;
+		case BL_GET_HELP:
+			Bootloader_Handle_GetHelp_cmd(bl_rx_buffer);
+			break;
+		case BL_GET_CID:
+			Bootloader_Handle_GetCid_cmd(bl_rx_buffer);
+			break;
+		case BL_GET_RDP_STATUS:
+			Bootloader_Handle_GetRdp_cmd(bl_rx_buffer);
+			break;
+		case BL_GO_TO_ADDR:
+			Bootloader_Handle_Go_cmd(bl_rx_buffer);
+			break;
+		case BL_FLASH_ERASE:
+			Bootloader_Handle_Flash_Erase_cmd(bl_rx_buffer);
+			break;
+		case BL_MEM_WRITE:
+			Bootloader_Handle_Mem_Write_cmd(bl_rx_buffer);
+			break;
+		case BL_EN_RW_PROTECT:
+			Bootloader_Handle_Enable_RW_Protect(bl_rx_buffer);
+			break;
+		case BL_MEM_READ:
+			Bootloader_Handle_Mem_Read(bl_rx_buffer);
+			break;
+		case BL_READ_SECTOR_P_STATUS:
+			Bootloader_Handle_Read_Sector_Protection_Status(bl_rx_buffer);
+			break;
+		case BL_OTP_READ:
+			Bootloader_Handle_Read_OTP(bl_rx_buffer);
+			break;
+		case BL_DIS_R_W_PROTECT:
+			Bootloader_Handle_Disable_RW_Protect(bl_rx_buffer);
+			break;
+		default:
+			printmsg("BL_DEBUG_MSG:Invalid command code received from host\n\r");
+			break;
+		}
+
+	}
 }
 
 void Bootloader_Jump_To_User_App(void)
@@ -341,6 +392,7 @@ void Bootloader_Jump_To_User_App(void)
 	printmsg("BL_DEBUG_MSG:MSP value : %#x\n\r", msp_value);
 
 	// This function comes from CMSIS.
+
 	__set_MSP(msp_value);
 
 	// SCB->VTOR = FLASH_SECTOR1_BASE_ADDRESS; // Vector Table Offset Register
@@ -359,7 +411,134 @@ void Bootloader_Jump_To_User_App(void)
 	app_reset_handler();
 }
 
-/* USER CODE END 4 */
+void Bootloader_Handle_GetVer_cmd(uint8_t *bl_rx_buffer)
+{
+	uint8_t bl_version;
+
+	printmsg("BL_DEBUG_MSG:Bootloader_Handle_GetVer_cmd\n\r");
+
+	// calculate command packet length (first 2 bytes)
+	uint32_t command_packet_len = ((bl_rx_buffer[0] << 8) | bl_rx_buffer[1]) + 1;
+
+	// extract crc sent by host
+	uint32_t host_crc = *((uint32_t * ) (bl_rx_buffer + command_packet_len - 4));
+
+	if(! Bootloader_Verify_CRC(bl_rx_buffer, command_packet_len - 4, host_crc))
+	{
+		printmsg("BL_DEBUG_MSG:Checksum Success!!\n\r");
+		Bootloader_Send_ack(bl_rx_buffer[0], 1);
+		bl_version = Get_Bootloader_Version();
+		printmsg("BL_DEBUG_MSG:BL_VER : %d %#x\n\r",bl_version,bl_version);
+		Bootloader_UART_Write_Data(&bl_rx_buffer, 1);
+	}
+}
+
+void Bootloader_Handle_GetHelp_cmd(uint8_t *pBuffer)
+{
+
+}
+
+void Bootloader_Handle_GetCid_cmd(uint8_t *pBuffer)
+{
+
+}
+
+void Bootloader_Handle_GetRdp_cmd(uint8_t *pBuffer)
+{
+
+}
+
+void Bootloader_Handle_Go_cmd(uint8_t *pBuffer)
+{
+
+}
+
+void Bootloader_Handle_Flash_Erase_cmd(uint8_t *pBuffer)
+{
+
+}
+
+void Bootloader_Handle_Mem_Write_cmd(uint8_t *pBuffer)
+{
+
+}
+
+void Bootloader_Handle_Enable_RW_Protect(uint8_t *pBuffer)
+{
+
+}
+
+void Bootloader_Handle_Mem_Read (uint8_t *pBuffer)
+{
+
+}
+
+void Bootloader_Handle_Read_Sector_Protection_Status(uint8_t *pBuffer)
+{
+
+}
+
+void Bootloader_Handle_Read_OTP(uint8_t *pBuffer)
+{
+
+}
+
+void Bootloader_Handle_Disable_RW_Protect(uint8_t *pBuffer)
+{
+
+}
+
+void Bootloader_Send_ack(uint8_t command_code, uint16_t follow_len)
+{
+	// Ack packet contains 3 bytes, first byte is the ack code, next two bytes gives the length of response to follow
+	uint8_t ack_buf[3];
+	ack_buf[0] = BL_ACK;
+	ack_buf[1] = *((uint8_t *) &(follow_len) + 1);
+	ack_buf[2] = *((uint8_t *) &(follow_len) + 0);
+	HAL_UART_Transmit(C_UART,ack_buf,3,HAL_MAX_DELAY);
+}
+
+void Bootloader_Send_nack(void)
+{
+	uint8_t nack = BL_NACK;
+	HAL_UART_Transmit(C_UART,&nack,1,HAL_MAX_DELAY);
+}
+
+uint8_t Bootloader_Verify_CRC(uint8_t *pData, uint32_t len, uint32_t crc_host)
+{
+    uint32_t uwCRCValue = 0xff;
+
+    for (uint32_t i = 0 ; i < len ; i++)
+	{
+        uint32_t i_data = pData[i];
+        uwCRCValue = HAL_CRC_Accumulate(&hcrc, &i_data, 1);
+	}
+
+	 /* Reset CRC Calculation Unit */
+  __HAL_CRC_DR_RESET(&hcrc);
+
+	if( uwCRCValue == crc_host)
+	{
+		return VERIFY_CRC_SUCCESS;
+	}
+
+	return VERIFY_CRC_FAIL;
+}
+
+void Bootloader_UART_Write_Data(uint8_t *pBuffer, uint32_t len)
+{
+	HAL_UART_Transmit(C_UART, pBuffer, len, HAL_MAX_DELAY);
+}
+
+/*
+ *  @return macro value of bootloader version
+ */
+uint8_t Get_Bootloader_Version(void)
+{
+  return (uint8_t)BL_VERSION;
+}
+
+/* USER CODE END 4 (Bootloader functions implementation) */
 
 /**
  * @brief  This function is executed in case of error occurrence.
@@ -391,3 +570,4 @@ void assert_failed(uint8_t *file, uint32_t line)
 #endif /* USE_FULL_ASSERT */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+
